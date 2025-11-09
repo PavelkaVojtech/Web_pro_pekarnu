@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍞 Informační systém pro pekárnu – webová část
 
-## Getting Started
+**Autor:** Vojtěch Pavelka
 
-First, run the development server:
+Projekt je maturitní prací zaměřenou na vývoj komplexní webové aplikace, která pokrývá potřeby moderní pekárny v oblasti online prezentace a e-commerce.
+
+---
+
+## 🎯 Cíle Projektu
+
+Hlavním cílem této práce je vytvořit **moderní a plně responzivní informační systém**, který zefektivní komunikaci se zákazníky a automatizuje proces objednávání.
+
+### Klíčové Funkce Systému
+
+* **Prezentační Web:** Moderní firemní vizitka s intuitivním designem, včetně sekcí O nás a Kontakt.
+* **Katalog Produktů (Sortiment):** Ucelený přehled výrobků rozdělený do kategorií (chleby, jemné pečivo, běžné pečivo) s detailními informacemi o složení a alergenech.
+* **Objednávkový Systém:** Podpora **jednorázových i pravidelných** objednávek s možností doručení nebo osobního vyzvednutí.
+* **Uživatelská Zóna:** Správa zákaznického profilu, historie objednávek a automatické e-mailové notifikace.
+* **Podpora pro Zaměstnance:** Sekce pro přihlášení zaměstnanců a přístup k interním nástrojům (např. přehled odpracovaných hodin).
+
+## 💻 Technologický Stack (The MERN Stack++)
+
+Projekt je implementován s využitím následujících nejmodernějších webových technologií, které zajišťují rychlost, spolehlivost a škálovatelnost:
+
+| Oblast | Technologie | Účel |
+| :--- | :--- | :--- |
+| **Základ Frameworku** | Next.js (App Router) | Výkonný React framework pro rychlé full-stack aplikace. |
+| **Jazyk** | TypeScript | Statická typová kontrola pro bezpečnější a udržitelnější kód. |
+| **Styling** | Tailwind CSS | Utility-first framework pro rychlou a flexibilní implementaci designu. |
+| **Správa Dat** | TanStack Query (React Query) | Efektivní správa, cachování a synchronizace dat. |
+| **Globální Stav** | Zustand / Redux Toolkit | Optimalizovaná správa stavu aplikace (např. obsah košíku). |
+| **Formuláře/Validace** | React Hook Form + Zod | Výkonná práce s formuláři a validace schématu. |
+| **Platby (Plán)** | Stripe / ČSOB / Comgate | Integrace online platebních bran. |
+| **Lokalizace (Plán)** | react-i18next | Příprava na podporu vícejazyčnosti (i18n). |
+
+---
+
+## 🛠️ Instalace a Spuštění
+
+Tento projekt byl inicializován pomocí `create-next-app`.
+
+### 1. Klonování Repozitáře
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [URL_VAŠEHO_REPOZITÁŘE]
+cd web_pro_pekarnu
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Instalace Závislostí
+Použijte preferovaný správce balíčků (npm, yarn, pnpm, bun)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Spuštění Vývojového Serveru
+```bash
+npm run dev
+```
 
-## Learn More
+Otevřete http://localhost:3000 ve vašem prohlížeči. Aplikace se automaticky aktualizuje při změnách kódu.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
