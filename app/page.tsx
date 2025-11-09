@@ -1,6 +1,7 @@
 import React from "react";
-import Layout from "./componnets/layout";
-import HeroSection from "./componnets/heroSection";
+import Layout from "./componets/layout";
+import HeroSection from "./componets/heroSection";
+import MeziSekce from "./componets/meziSekce";
 
 
 export default function Home() {
@@ -9,6 +10,7 @@ export default function Home() {
       <main>
         <Layout>
           <HeroSection />
+          <MeziSekce />
         </Layout>
       </main>
     </div>
