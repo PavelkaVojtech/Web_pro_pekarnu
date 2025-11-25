@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@plugin "tailwindcss-animate";
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+/* PREMIUM DARK BAKERY THEME */
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Pozadí: Hluboká, neutrální tmavá (není to úplně černá, lépe se na to dívá) */
+    --background: 240 10% 3.9%;
+    
+    /* Text: Jemná bílá (ne 100% bílá, aby neřezala do očí) */
+    --foreground: 0 0% 98%;
+
+    /* Karty: O něco světlejší než pozadí, aby vystoupily */
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+ 
+    /* Pop-up okna */
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+ 
+    /* HLAVNÍ BARVA: Zlatavá / Pečená (teplejší a elegantnější než neonová oranžová) */
+    --primary: 35 95% 55%; 
+    --primary-foreground: 240 5.9% 10%; /* Tmavý text na zlatém tlačítku */
+ 
+    /* Sekundární prvky (šedá tlačítka) */
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+ 
+    /* Tlumené texty (popisky) */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+ 
+    /* Akcenty (hover efekty v menu) - jemně šedá */
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+ 
+    /* Chyby */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+ 
+    /* Linky a okraje (velmi jemné) */
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 35 95% 55%; /* Focus kroužek ve zlaté */
+ 
+    --radius: 0.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  /* Výběr textu bude zlatý */
+  ::selection {
+    @apply bg-primary text-primary-foreground;
+  }
 }
