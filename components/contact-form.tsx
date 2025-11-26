@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
 
-// Schéma: Předmět je pryč, Zpráva je povinná
 const formSchema = z.object({
   name: z.string().min(2, {
     message: "Jméno musí mít alespoň 2 znaky.",
@@ -97,8 +96,6 @@ export function ContactForm() {
             )}
           />
           
-          {/* Pole Předmět bylo odstraněno */}
-
           <FormField
             control={form.control}
             name="message"

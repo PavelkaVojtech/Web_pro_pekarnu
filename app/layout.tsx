@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"; // 1. Import fontu
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const playfair = Playfair_Display({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Pekařství Bánov",
   description: "Tradiční rodinná pekárna v Bánově.",
@@ -26,26 +32,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="cs" suppressHydrationWarning> 
-      {/* suppressHydrationWarning je nutný pro next-themes, aby nevyskakovala chyba v konzoli */}
+    <html lang="cs" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased flex flex-col min-h-screen font-sans`}
       >
         <ThemeProvider
             attribute="class"
-            defaultTheme="dark" // Výchozí necháme tmavý, jak jsi měl
+            defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-          {/* Zde vložíme Header */}
           <SiteHeader />
           
-          {/* Main obsah, který se roztáhne (flex-1) */}
           <main className="flex-1">
             {children}
           </main>
 
-          {/* Zde vložíme Footer */}
           <SiteFooter />
         </ThemeProvider>
       </body>

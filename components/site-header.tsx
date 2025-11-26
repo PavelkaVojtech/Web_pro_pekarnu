@@ -2,14 +2,18 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation" // 1. Import hooku
 import { Menu, ShoppingCart } from "lucide-react"
 import { FaBreadSlice } from "react-icons/fa"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { ModeToggle } from "@/components/mode-toggle"
+import { cn } from "@/lib/utils" // 2. Import utility pro spojování tříd
 
 export function SiteHeader() {
+  const pathname = usePathname() // 3. Získání aktuální cesty
+
   const links = [
     { name: 'PRODUKTY', href: '/produkty' },
     { name: 'O NÁS', href: '/onas' },
@@ -20,7 +24,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 mx-auto">
         
-        {/* 1. MOBILNÍ MENU */}
+        {/* MOBILNÍ MENU */}
         <div className="flex items-center md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -34,17 +38,22 @@ export function SiteHeader() {
                  <FaBreadSlice /> PEKAŘSTVÍ
               </SheetTitle>
               <nav className="flex flex-col gap-4">
-                {links.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="block px-2 py-2 text-lg font-medium text-foreground/80 hover:text-primary transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                ))}
+                {links.map((link) => {
+                  const isActive = pathname === link.href
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "block px-2 py-2 text-lg font-medium transition-colors hover:text-primary",
+                        isActive ? "text-primary font-bold" : "text-foreground/80"
+                      )}
+                    >
+                      {link.name}
+                    </Link>
+                  )
+                })}
                 
-                {/* Mobilní ovládací prvky */}
                 <div className="border-t border-border mt-4 pt-4 flex flex-col gap-4">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-sm font-medium">Vzhled aplikace</span>
@@ -53,7 +62,10 @@ export function SiteHeader() {
                   
                   <Link
                     href="/prihlaseni"
-                    className="block px-2 py-2 text-lg font-bold text-primary hover:text-primary/80 transition-colors"
+                    className={cn(
+                        "block px-2 py-2 text-lg font-bold transition-colors hover:text-primary/80",
+                        pathname === "/prihlaseni" ? "text-primary" : "text-primary"
+                    )}
                   >
                     Přihlášení
                   </Link>
@@ -63,7 +75,7 @@ export function SiteHeader() {
           </Sheet>
         </div>
 
-        {/* 2. LOGO A DESKTOP NAVIGACE */}
+        {/* DESKTOP NAVIGACE */}
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2 group">
             <FaBreadSlice className="h-6 w-6 text-primary group-hover:text-primary/80 transition-colors" />
@@ -73,23 +85,27 @@ export function SiteHeader() {
           </Link>
           
           <nav className="hidden gap-6 md:flex">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                {link.name}
-              </Link>
-            ))}
+            {links.map((link) => {
+              const isActive = pathname === link.href
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "flex items-center text-sm font-medium transition-colors hover:text-primary",
+                    isActive ? "text-primary font-bold" : "text-muted-foreground"
+                  )}
+                >
+                  {link.name}
+                </Link>
+              )
+            })}
           </nav>
         </div>
 
-        {/* 3. PRAVÁ STRANA */}
+        {/* PRAVÁ STRANA */}
         <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="flex items-center space-x-1 md:space-x-2">
-            
-            {/* Tlačítko pro změnu tématu */}
             <div className="hidden md:block">
                <ModeToggle />
             </div>
