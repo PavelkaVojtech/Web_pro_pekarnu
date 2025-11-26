@@ -31,49 +31,67 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* PREMIUM DARK BAKERY THEME */
 @layer base {
   :root {
-    /* Pozadí: Hluboká, neutrální tmavá (není to úplně černá, lépe se na to dívá) */
-    --background: 240 10% 3.9%;
-    
-    /* Text: Jemná bílá (ne 100% bílá, aby neřezala do očí) */
-    --foreground: 0 0% 98%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-    /* Karty: O něco světlejší než pozadí, aby vystoupily */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+ 
+    --primary: 35 95% 50%; 
+    --primary-foreground: 0 0% 98%;
+ 
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+ 
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+ 
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 35 95% 50%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 100%;
+ 
     --card: 240 10% 6%;
     --card-foreground: 0 0% 98%;
  
-    /* Pop-up okna */
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
  
-    /* HLAVNÍ BARVA: Zlatavá / Pečená (teplejší a elegantnější než neonová oranžová) */
-    --primary: 35 95% 55%; 
-    --primary-foreground: 240 5.9% 10%; /* Tmavý text na zlatém tlačítku */
+    --primary: 35 95% 55%;
+    --primary-foreground: 240 5.9% 10%;
  
-    /* Sekundární prvky (šedá tlačítka) */
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
  
-    /* Tlumené texty (popisky) */
     --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted-foreground: 240 5% 70%;
  
-    /* Akcenty (hover efekty v menu) - jemně šedá */
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
  
-    /* Chyby */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
  
-    /* Linky a okraje (velmi jemné) */
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 35 95% 55%; /* Focus kroužek ve zlaté */
- 
-    --radius: 0.5rem;
+    --ring: 35 95% 55%;
   }
 }
 
@@ -82,11 +100,17 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-  /* Výběr textu bude zlatý */
-  ::selection {
-    @apply bg-primary text-primary-foreground;
-  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  z-index: 2147483646;
 }

@@ -4,12 +4,11 @@ import { CategoriesSection } from "@/components/categories-section"
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background transition-colors duration-300">
       <HeroSection />
       <FeaturesSection />
       <CategoriesSection />
       
-      {/* Můžeme přidat i jednoduchou CTA sekci na závěr */}
       <section className="bg-primary text-primary-foreground py-16 text-center">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-4 font-serif">Máte speciální přání?</h2>
