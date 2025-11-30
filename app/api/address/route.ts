@@ -2,10 +2,19 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { PrismaClient } from "@/lib/generated/prisma/client";
+import { z } from "zod";
 
 const prisma = new PrismaClient();
 
-// NAČTENÍ ADRES (GET)
+// Validace vstupu
+const addressSchema = z.object({
+  street: z.string().min(2, "Ulice je příliš krátká"),
+  city: z.string().min(2, "Město je příliš krátké"),
+  zipCode: z.string()
+    .regex(/^\d{3}\s?\d{2}$/, "PSČ musí být ve formátu 12345 nebo 123 45")
+    .transform((val) => val.replace(/\s+/g, "")),
+});
+
 export async function GET(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Neautorizováno" }, { status: 401 });
@@ -18,33 +27,27 @@ export async function GET(req: Request) {
   return NextResponse.json(addresses);
 }
 
-// PŘIDÁNÍ ADRESY (POST)
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) return NextResponse.json({ error: "Neautorizováno" }, { status: 401 });
 
     const body = await req.json();
-    const { street, city, zipCode } = body;
+    
+    const parseResult = addressSchema.safeParse(body);
+    if (!parseResult.success) {
+      // OPRAVA ZOD ERRORU: Použijeme .issues
+      return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
+    }
 
-      if (!street || !city || !zipCode) {
-          return NextResponse.json({ error: "Vyplňte všechna pole" }, { status: 400 });
-      }
-
-      // jednoduchá validace PSČ (12345 nebo 123 45)
-      const zipRegex = /^\d{3}\s?\d{2}$/
-      if (!zipRegex.test(String(zipCode))) {
-        return NextResponse.json({ error: "Neplatné PSČ (očekává se 5 číslic, např. 12345 nebo 123 45)" }, { status: 400 })
-      }
-
-      const normalizedZip = String(zipCode).replace(/\s+/g, "")
+    const { street, city, zipCode } = parseResult.data;
 
     const newAddress = await prisma.address.create({
       data: {
         userId: session.user.id,
         street,
         city,
-        zipCode: normalizedZip,
+        zipCode,
         country: "Česká republika"
       }
     });
@@ -55,7 +58,6 @@ export async function POST(req: Request) {
   }
 }
 
-// SMAZÁNÍ ADRESY (DELETE)
 export async function DELETE(req: Request) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) return NextResponse.json({ error: "Neautorizováno" }, { status: 401 });
@@ -65,17 +67,20 @@ export async function DELETE(req: Request) {
 
     if(!id) return NextResponse.json({ error: "Chybí ID" }, { status: 400 });
 
-    await prisma.address.deleteMany({
+    const result = await prisma.address.deleteMany({
         where: {
             id: id,
-            userId: session.user.id // Bezpečnost: mazat jen svoje
+            userId: session.user.id 
         }
     });
+
+    if (result.count === 0) {
+       return NextResponse.json({ error: "Adresa nenalezena nebo nemáte oprávnění" }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
 }
 
-// AKTUALIZACE ADRESY (PUT)
 export async function PUT(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -86,23 +91,22 @@ export async function PUT(req: Request) {
     if (!id) return NextResponse.json({ error: "Chybí ID" }, { status: 400 });
 
     const body = await req.json();
-    const { street, city, zipCode } = body;
-
-    if (!street || !city || !zipCode) {
-      return NextResponse.json({ error: "Vyplňte všechna pole" }, { status: 400 });
+    const parseResult = addressSchema.safeParse(body);
+    
+    if (!parseResult.success) {
+      return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
     }
 
-    const zipRegex = /^\d{3}\s?\d{2}$/
-    if (!zipRegex.test(String(zipCode))) {
-      return NextResponse.json({ error: "Neplatné PSČ (očekává se 5 číslic, např. 12345 nebo 123 45)" }, { status: 400 })
-    }
+    const { street, city, zipCode } = parseResult.data;
 
-    const normalizedZip = String(zipCode).replace(/\s+/g, "")
-
-    const updated = await prisma.address.updateMany({
+    const result = await prisma.address.updateMany({
       where: { id: id, userId: session.user.id },
-      data: { street, city, zipCode: normalizedZip }
+      data: { street, city, zipCode }
     });
+
+    if (result.count === 0) {
+        return NextResponse.json({ error: "Adresa nenalezena" }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

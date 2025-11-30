@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
-import { User, Package, MapPin, Settings, LogOut, Building2, Save, Plus, Trash2, Home } from "lucide-react"
+import { User, Package, MapPin, Settings, LogOut, Building2, Save, Plus, Trash2, Home, Loader2 } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,9 +23,43 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 import { useToast } from "@/components/ui/toast"
 
-// Typ pro adresu
+// --- SCHÉMATA ---
+
+const profileFormSchema = z.object({
+  name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),
+  phone: z.string().optional(),
+  // OPRAVA TYPU: .default(false) zajistí, že to nebude undefined
+  isCompany: z.boolean().default(false),
+  companyName: z.string().optional(),
+  ico: z.string().optional(),
+  dic: z.string().optional(),
+}).refine((data) => {
+  if (data.isCompany) {
+    return !!data.companyName && !!data.ico;
+  }
+  return true;
+}, {
+  message: "Vyplňte název firmy a IČO",
+  path: ["companyName"],
+});
+
+const addressFormSchema = z.object({
+  street: z.string().min(2, "Ulice je příliš krátká"),
+  city: z.string().min(2, "Město je příliš krátké"),
+  zipCode: z.string().regex(/^\d{3}\s?\d{2}$/, "PSČ musí být 5 číslic (např. 12345)"),
+});
+
 type Address = {
     id: string;
     street: string;
@@ -32,154 +69,123 @@ type Address = {
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { data: session } = authClient.useSession()
+  const { data: session, isPending } = authClient.useSession()
+  const { toast } = useToast()
   
-  // Stavy pro formuláře
-  const [loading, setLoading] = useState(false)
-  const [isCompany, setIsCompany] = useState(false)
-  
-  // Data uživatele
-  const [formData, setFormData] = useState({
-      name: "",
-      phone: "",
-      companyName: "",
-      ico: "",
-      dic: ""
-  })
-
-  // Adresy
   const [addresses, setAddresses] = useState<Address[]>([])
-  const [newAddress, setNewAddress] = useState({ street: "", city: "", zipCode: "" })
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
-
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
-  const { toast } = useToast()
+    // 1. Profilový formulář
+    const profileForm = useForm({
+        resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      isCompany: false,
+      companyName: "",
+      ico: "",
+      dic: "",
+    },
+  })
 
-  // 1. Načtení aktuálních dat při startu
+    // 2. Adresní formulář
+    const addressForm = useForm({
+        resolver: zodResolver(addressFormSchema),
+    defaultValues: {
+      street: "",
+      city: "",
+      zipCode: "",
+    },
+  })
+
+  // Načtení dat
   useEffect(() => {
     if (session?.user) {
-        // Zkusíme načíst rozšířená data (telefon, firma) z našeho API nebo session
-        // Pro jednoduchost teď bereme jméno ze session, zbytek fetch
-        setFormData(prev => ({ ...prev, name: session.user.name || "" }))
-        // Poznámka: V ideálním světě bychom zde volali endpoint /api/profile/me pro získání čerstvých dat z DB
-        // Pro MP zatím necháme uživatele vyplnit prázdná pole, nebo si je můžeš dotáhnout.
+        // V reálné aplikaci bychom zde volali endpoint /api/profile/me pro získání detailů (IČO, telefon...)
+        // Zde resetujeme formulář s daty, která máme k dispozici
+        profileForm.reset({
+            name: session.user.name || "",
+            phone: "", 
+            isCompany: false,
+            companyName: "",
+            ico: "",
+            dic: "",
+        })
         fetchAddresses();
     }
-  }, [session])
+  }, [session, profileForm])
 
   const fetchAddresses = async () => {
-      const res = await fetch("/api/adress");
+      // OPRAVA CESTY: /api/address
+      const res = await fetch("/api/address");
       if (res.ok) {
           const data = await res.json();
           setAddresses(data);
       }
   }
 
-  // --- ULOŽENÍ PROFILU ---
-  const handleSaveProfile = async () => {
-    setLoading(true)
+  // --- HANDLERS ---
+
+  const onProfileSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     try {
         const res = await fetch("/api/profile", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                ...formData,
-                isCompany
-            })
+            body: JSON.stringify(values)
         });
 
-        if (res.ok) {
-            // Aktualizujeme také data v auth (Better Auth) aby se jméno okamžitě promítlo do session
-            try {
-              // Use Better Auth client's $fetch so the client-side session atom is notified
-              await authClient.$fetch?.("/update-user", {
-                method: "POST",
-                body: JSON.stringify({ name: formData.name }),
-                headers: { "Content-Type": "application/json" },
-              });
-              // Additionally trigger the client's session refetch/notify so UI updates immediately
-              try {
-                // toggle internal session signal (implementation may exist on the client)
-                (authClient as any).notify?.("$sessionSignal");
-              } catch (e) {
-                console.debug('authClient.notify not available', e);
-              }
-              try {
-                // fetch fresh session to update client's cache
-                await authClient.$fetch?.("/get-session");
-              } catch (e) {
-                console.debug('authClient.$fetch(/get-session) failed', e);
-              }
-            } catch (e) {
-              // Nekritická chyba — pokračujeme dál
-              console.warn("Chyba při aktualizaci auth uživatele:", e);
-            }
-
-            // Optimisticky zobrazit nové jméno v UI a požádat Next o refresh server-rendered dat
-            toast.success("Profil byl úspěšně aktualizován", "Změny byly uloženy")
-            router.refresh(); // Obnoví server-side data
-        } else {
-            toast.error("Chyba při ukládání")
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || "Chyba při ukládání");
         }
-    } catch (e) {
-          toast.error("Nastala chyba.")
-    } finally {
-        setLoading(false)
+
+        toast.success("Profil aktualizován");
+        // OPRAVA: Refresh stránky obnoví session data ze serveru
+        router.refresh(); 
+    } catch (e: any) {
+        toast.error(e.message || "Nastala chyba při ukládání profilu.");
     }
   }
 
-  // --- PŘIDÁNÍ ADRESY ---
-  const handleAddAddress = async () => {
-      if (!newAddress.street || !newAddress.city) return toast.error("Vyplňte ulici a město.")
+  const onAddressSubmit = async (values: z.infer<typeof addressFormSchema>) => {
+      const normalizedZip = values.zipCode.replace(/\s+/g, "")
+      const payload = { ...values, zipCode: normalizedZip }
 
-      // Validace PSČ (12345 nebo 123 45)
-      const zipRegex = /^\d{3}\s?\d{2}$/
-      if (!zipRegex.test(String(newAddress.zipCode))) {
-        return toast.error("PSČ musí být 5 číslic (12345 nebo 123 45)")
-      }
-
-      // Normalizovat PSČ před odesláním (odstraníme mezery)
-      const normalized = String(newAddress.zipCode).replace(/\s+/g, "")
-      const payload = { ...newAddress, zipCode: normalized }
-
-      if (editingAddress) {
-        const res = await fetch(`/api/adress?id=${editingAddress.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        })
+      try {
+        let res;
+        // OPRAVA CESTY: /api/address
+        if (editingAddress) {
+            res = await fetch(`/api/address?id=${editingAddress.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            res = await fetch("/api/address", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        }
 
         if (res.ok) {
-          toast.success("Adresa upravena")
-          setEditingAddress(null)
-          setIsAddressDialogOpen(false)
-          fetchAddresses()
+            toast.success(editingAddress ? "Adresa upravena" : "Adresa přidána");
+            setIsAddressDialogOpen(false);
+            fetchAddresses();
+            addressForm.reset();
+            setEditingAddress(null);
         } else {
-          toast.error("Chyba při ukládání adresy")
+            const err = await res.json();
+            toast.error(err.error || "Chyba při ukládání");
         }
-        return
-      }
-
-      const res = await fetch("/api/adress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-          toast.success("Adresa přidána")
-          fetchAddresses(); // Znovu načíst seznam
-          setNewAddress({ street: "", city: "", zipCode: "" });
-          setIsAddressDialogOpen(false);
-      } else {
-          toast.error("Chyba při přidání adresy")
+      } catch (e) {
+          toast.error("Chyba serveru");
       }
   }
 
-  // --- SMAZÁNÍ ADRESY ---
   const handleDeleteAddress = async (id: string) => {
       setDeleteTargetId(id)
       setIsDeleteConfirmOpen(true)
@@ -187,7 +193,8 @@ export default function ProfilePage() {
 
   const confirmDelete = async () => {
     if (!deleteTargetId) return
-    const res = await fetch(`/api/adress?id=${deleteTargetId}`, { method: "DELETE" })
+    // OPRAVA CESTY: /api/address
+    const res = await fetch(`/api/address?id=${deleteTargetId}`, { method: "DELETE" })
     if (res.ok) {
       toast.success("Adresa smazána")
       fetchAddresses()
@@ -208,7 +215,26 @@ export default function ProfilePage() {
     })
   }
 
-  if (!session) return <div className="min-h-screen flex items-center justify-center">Načítám...</div>
+  const openAddressDialog = (addr?: Address) => {
+      if (addr) {
+          setEditingAddress(addr);
+          addressForm.reset({
+              street: addr.street,
+              city: addr.city,
+              zipCode: addr.zipCode
+          });
+      } else {
+          setEditingAddress(null);
+          addressForm.reset({
+              street: "",
+              city: "",
+              zipCode: ""
+          });
+      }
+      setIsAddressDialogOpen(true);
+  }
+
+  if (isPending || !session) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
 
   return (
     <div className="min-h-screen bg-muted/30 py-10 transition-colors duration-300">
@@ -217,13 +243,14 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* --- LEVÝ SIDEBAR --- */}
-          <div className="w-full md:w-64 flex-shrink-0 space-y-6">
+          {/* OPRAVA: shrink-0 místo flex-shrink-0 (Tailwind v4 warning) */}
+          <div className="w-full md:w-64 shrink-0 space-y-6">
             <Card>
                 <CardHeader className="text-center pb-2">
                     <div className="mx-auto w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center text-primary text-2xl font-bold mb-2">
-                        {(formData.name || session.user.name)?.charAt(0).toUpperCase()}
+                        {session.user.name?.charAt(0).toUpperCase()}
                     </div>
-                    <CardTitle className="text-lg">{formData.name || session.user.name}</CardTitle>
+                    <CardTitle className="text-lg">{session.user.name}</CardTitle>
                     <CardDescription className="truncate">{session.user.email}</CardDescription>
                 </CardHeader>
                 <CardFooter>
@@ -234,7 +261,7 @@ export default function ProfilePage() {
             </Card>
           </div>
 
-          {/* --- PRAVÁ ČÁST (OBSAH) --- */}
+          {/* --- PRAVÁ ČÁST --- */}
           <div className="flex-1">
             <Tabs defaultValue="info" className="w-full space-y-6">
               
@@ -244,103 +271,133 @@ export default function ProfilePage() {
                 <TabsTrigger value="settings">Nastavení</TabsTrigger>
               </TabsList>
 
-              {/* 1. ZÁLOŽKA: ÚDAJE */}
-              <TabsContent value="info" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Osobní údaje</CardTitle>
-                    <CardDescription>Kontaktní informace pro vaše objednávky.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Celé jméno</Label>
-                            <Input 
-                                id="name" 
-                                value={formData.name} 
-                                onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" defaultValue={session.user.email} disabled className="bg-muted" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Telefon</Label>
-                            <Input 
-                                id="phone" 
-                                placeholder="+420 777 888 999" 
-                                value={formData.phone}
-                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            />
-                        </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* 1. ÚDAJE */}
+                            <TabsContent value="info">
+                                <Form {...(profileForm as any)}>
+                                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit as any)} className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Osobní údaje</CardTitle>
+                                <CardDescription>Kontaktní informace pro vaše objednávky.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Celé jméno</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="space-y-2">
+                                        <Label>Email</Label>
+                                        <Input value={session.user.email} disabled className="bg-muted" />
+                                    </div>
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="phone"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Telefon</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="+420 777 888 999" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                {/* Sekce pro firmu */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <CardTitle className="flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-primary" /> Firemní údaje
-                                </CardTitle>
-                                <CardDescription>Vyplňte pouze pokud nakupujete na firmu.</CardDescription>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id="company-mode" 
-                                    checked={isCompany} 
-                                    onCheckedChange={(c) => setIsCompany(c as boolean)} 
-                                />
-                                <Label htmlFor="company-mode">Nakupuji na IČO</Label>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    
-                    {/* Zobrazit pouze pokud je zaškrtnuto */}
-                    {isCompany && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="companyName">Název firmy</Label>
-                                    <Input 
-                                        id="companyName" 
-                                        value={formData.companyName}
-                                        onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                        {/* Firemní údaje */}
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Building2 className="h-5 w-5 text-primary" /> Firemní údaje
+                                        </CardTitle>
+                                        <CardDescription>Vyplňte pouze pokud nakupujete na firmu.</CardDescription>
+                                    </div>
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="isCompany"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                                <div className="space-y-1 leading-none">
+                                                    <FormLabel>Nakupuji na IČO</FormLabel>
+                                                </div>
+                                            </FormItem>
+                                        )}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="ico">IČO</Label>
-                                    <Input 
-                                        id="ico" 
-                                        value={formData.ico}
-                                        onChange={(e) => setFormData({...formData, ico: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="dic">DIČ</Label>
-                                    <Input 
-                                        id="dic" 
-                                        value={formData.dic}
-                                        onChange={(e) => setFormData({...formData, dic: e.target.value})}
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    )}
-                    
-                    <CardFooter className="border-t pt-6 flex justify-end">
-                        <Button onClick={handleSaveProfile} disabled={loading}>
-                            <Save className="mr-2 h-4 w-4" /> 
-                            {loading ? "Ukládám..." : "Uložit změny"}
-                        </Button>
-                    </CardFooter>
-                </Card>
+                            </CardHeader>
+                            
+                            {profileForm.watch("isCompany") && (
+                                <CardContent className="space-y-4 animate-in slide-in-from-top-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="companyName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Název firmy</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="ico"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>IČO</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="dic"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>DIČ (volitelné)</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            )}
+                            
+                            <CardFooter className="border-t pt-6 flex justify-end">
+                                <Button type="submit" disabled={profileForm.formState.isSubmitting}>
+                                    <Save className="mr-2 h-4 w-4" /> 
+                                    {profileForm.formState.isSubmitting ? "Ukládám..." : "Uložit změny"}
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </form>
+                </Form>
               </TabsContent>
 
-              {/* 2. ZÁLOŽKA: OBJEDNÁVKY */}
+              {/* 2. OBJEDNÁVKY */}
               <TabsContent value="orders">
                 <Card>
                   <CardHeader>
@@ -359,10 +416,8 @@ export default function ProfilePage() {
                 </Card>
               </TabsContent>
 
-              {/* 3. ZÁLOŽKA: NASTAVENÍ (ADRESY) */}
+              {/* 3. NASTAVENÍ (ADRESY) */}
               <TabsContent value="settings" className="space-y-6">
-                
-                {/* MOJE ADRESY */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
@@ -372,41 +427,58 @@ export default function ProfilePage() {
                             <CardDescription>Uložená místa pro doručení.</CardDescription>
                         </div>
                         
-                        {/* Tlačítko pro přidání adresy (Otevírá Dialog) */}
-                        <Dialog open={isAddressDialogOpen} onOpenChange={(open) => {
-                          if (!open) {
-                            setEditingAddress(null)
-                            setNewAddress({ street: "", city: "", zipCode: "" })
-                          }
-                          setIsAddressDialogOpen(open)
-                        }}>
+                        <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => { setEditingAddress(null); setNewAddress({ street: "", city: "", zipCode: "" }) }}><Plus className="h-4 w-4 mr-2"/> Přidat adresu</Button>
+                            <Button size="sm" variant="outline" onClick={() => openAddressDialog()}><Plus className="h-4 w-4 mr-2"/> Přidat adresu</Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>{editingAddress ? 'Upravit adresu' : 'Nová adresa'}</DialogTitle>
                               <DialogDescription>Zadejte adresu pro doručování pečiva.</DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <Label htmlFor="street">Ulice a číslo popisné</Label>
-                                <Input id="street" value={newAddress.street} onChange={(e) => setNewAddress({...newAddress, street: e.target.value})} />
-                              </div>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                  <Label htmlFor="city">Město / Obec</Label>
-                                  <Input id="city" value={newAddress.city} onChange={(e) => setNewAddress({...newAddress, city: e.target.value})} />
-                                </div>
-                                <div className="grid gap-2">
-                                  <Label htmlFor="zip">PSČ</Label>
-                                  <Input id="zip" value={newAddress.zipCode} onChange={(e) => setNewAddress({...newAddress, zipCode: e.target.value})} />
-                                </div>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button onClick={handleAddAddress}>{editingAddress ? 'Uložit změny' : 'Uložit adresu'}</Button>
-                            </DialogFooter>
+                            
+                            <Form {...(addressForm as any)}>
+                                <form onSubmit={addressForm.handleSubmit(onAddressSubmit as any)} className="space-y-4 py-4">
+                                    <FormField
+                                        control={addressForm.control}
+                                        name="street"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Ulice a číslo</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={addressForm.control}
+                                            name="city"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Město</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={addressForm.control}
+                                            name="zipCode"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>PSČ</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit">{editingAddress ? 'Uložit změny' : 'Uložit adresu'}</Button>
+                                    </DialogFooter>
+                                </form>
+                            </Form>
                           </DialogContent>
                         </Dialog>
 
@@ -426,11 +498,7 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <Button variant="ghost" size="icon" onClick={() => {
-                                            setEditingAddress(addr)
-                                            setNewAddress({ street: addr.street, city: addr.city, zipCode: addr.zipCode })
-                                            setIsAddressDialogOpen(true)
-                                          }}>
+                                          <Button variant="ghost" size="icon" onClick={() => openAddressDialog(addr)}>
                                             <Save className="h-4 w-4" />
                                           </Button>
                                           <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteAddress(addr.id)}>
@@ -457,7 +525,7 @@ export default function ProfilePage() {
                   </DialogContent>
                 </Dialog>
 
-                {/* ZMĚNA HESLA */}
+                {/* Zabezpečení */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">

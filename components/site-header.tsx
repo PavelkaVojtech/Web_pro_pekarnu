@@ -33,7 +33,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-300">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 mx-auto">
         
         {/* 1. MOBILNÍ MENU */}

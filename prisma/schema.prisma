@@ -1,3 +1,4 @@
+//
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -8,7 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- UŽIVATEL A FIRMA ---
+// --- UŽIVATEL ---
 
 model User {
   id            String    @id
@@ -19,16 +20,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // Rozšíření pro pekárnu
   phone         String?
   role          Role      @default(USER)
   
-  // Firemní údaje (pokud je to firma)
+  // Firemní údaje
   companyName   String?
   ico           String?
   dic           String?
-  
-  // Vztahy
+
   sessions      Session[]
   accounts      Account[]
   addresses     Address[]
@@ -49,14 +48,13 @@ enum Role {
 model Address {
   id          String   @id @default(cuid())
   userId      String
-  type        AddressType @default(DELIVERY) // Fakturační nebo doručovací
+  type        AddressType @default(DELIVERY)
   street      String
   city        String
   zipCode     String
   country     String   @default("Česká republika")
   
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders      Order[]
 
   @@map("address")
 }
@@ -66,12 +64,12 @@ enum AddressType {
   DELIVERY
 }
 
-// --- PRODUKTY A KATEGORIE ---
+// --- PRODUKTY ---
 
 model Category {
   id          String    @id @default(cuid())
-  name        String    @unique // Např. "Chleba", "Jemné pečivo"
-  slug        String    @unique // "chleba" (pro URL)
+  name        String    @unique
+  slug        String    @unique
   imageUrl    String?
   products    Product[]
 
@@ -84,8 +82,7 @@ model Product {
   description String?
   price       Decimal  @db.Decimal(10, 2)
   imageUrl    String?
-  isAvailable Boolean  @default(true) // Je produkt momentálně na skladě?
-  
+  isAvailable Boolean  @default(true)
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
   
@@ -101,15 +98,17 @@ model Product {
 
 model Order {
   id          String      @id @default(cuid())
-  orderNumber String      @unique // Např. 20250001 (hezčí než ID)
+  orderNumber String      @unique
   userId      String
   status      OrderStatus @default(PENDING)
   totalPrice  Decimal     @db.Decimal(10, 2)
-  note        String?     // Poznámka k objednávce
+  note        String?
   
-  // Kam doručit (snapshot adresy v době objednávky by byl lepší, ale pro MP stačí vazba)
-  addressId   String?
-  address     Address?    @relation(fields: [addressId], references: [id])
+  // SNAPSHOT ADRESY (Zde se uloží adresa platná v době objednávky)
+  deliveryStreet  String
+  deliveryCity    String
+  deliveryZip     String
+  deliveryCountry String @default("Česká republika")
 
   user        User        @relation(fields: [userId], references: [id])
   items       OrderItem[]
@@ -125,7 +124,7 @@ model OrderItem {
   orderId   String
   productId String
   quantity  Int
-  price     Decimal @db.Decimal(10, 2) // Cena v době nákupu (kdyby se později změnila)
+  price     Decimal @db.Decimal(10, 2)
 
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
@@ -134,15 +133,15 @@ model OrderItem {
 }
 
 enum OrderStatus {
-  PENDING     // Čeká na potvrzení
-  CONFIRMED   // Potvrzeno pekárnou
-  BAKING      // Peče se / Připravuje se
-  READY       // Připraveno k vyzvednutí
-  COMPLETED   // Vyzvednuto / Doručeno
-  CANCELLED   // Zrušeno
+  PENDING
+  CONFIRMED
+  BAKING
+  READY
+  COMPLETED
+  CANCELLED
 }
 
-// --- BETTER AUTH (SYSTEM) ---
+// --- BETTER AUTH ---
 
 model Session {
   id        String   @id
