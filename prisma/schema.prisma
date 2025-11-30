@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -14,6 +8,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- UŽIVATEL A FIRMA ---
+
 model User {
   id            String    @id
   name          String
@@ -22,12 +18,131 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  
+  // Rozšíření pro pekárnu
+  phone         String?
+  role          Role      @default(USER)
+  
+  // Firemní údaje (pokud je to firma)
+  companyName   String?
+  ico           String?
+  dic           String?
+  
+  // Vztahy
   sessions      Session[]
   accounts      Account[]
+  addresses     Address[]
+  orders        Order[]
 
   @@unique([email])
   @@map("user")
 }
+
+enum Role {
+  USER
+  ADMIN
+  EMPLOYEE
+}
+
+// --- ADRESY ---
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  type        AddressType @default(DELIVERY) // Fakturační nebo doručovací
+  street      String
+  city        String
+  zipCode     String
+  country     String   @default("Česká republika")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@map("address")
+}
+
+enum AddressType {
+  BILLING
+  DELIVERY
+}
+
+// --- PRODUKTY A KATEGORIE ---
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique // Např. "Chleba", "Jemné pečivo"
+  slug        String    @unique // "chleba" (pro URL)
+  imageUrl    String?
+  products    Product[]
+
+  @@map("category")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?
+  isAvailable Boolean  @default(true) // Je produkt momentálně na skladě?
+  
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  
+  orderItems  OrderItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("product")
+}
+
+// --- OBJEDNÁVKY ---
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique // Např. 20250001 (hezčí než ID)
+  userId      String
+  status      OrderStatus @default(PENDING)
+  totalPrice  Decimal     @db.Decimal(10, 2)
+  note        String?     // Poznámka k objednávce
+  
+  // Kam doručit (snapshot adresy v době objednávky by byl lepší, ale pro MP stačí vazba)
+  addressId   String?
+  address     Address?    @relation(fields: [addressId], references: [id])
+
+  user        User        @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("order")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2) // Cena v době nákupu (kdyby se později změnila)
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_item")
+}
+
+enum OrderStatus {
+  PENDING     // Čeká na potvrzení
+  CONFIRMED   // Potvrzeno pekárnou
+  BAKING      // Peče se / Připravuje se
+  READY       // Připraveno k vyzvednutí
+  COMPLETED   // Vyzvednuto / Doručeno
+  CANCELLED   // Zrušeno
+}
+
+// --- BETTER AUTH (SYSTEM) ---
 
 model Session {
   id        String   @id

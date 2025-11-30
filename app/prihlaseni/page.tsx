@@ -1,32 +1,36 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { FaBreadSlice } from "react-icons/fa"
+import { FaBreadSlice, FaSignInAlt, FaUserPlus } from "react-icons/fa"
 import { authClient } from "@/lib/auth-client"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 
 export default function AuthenticationPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  // State pro formuláře
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("") // Pouze pro registraci
+  // --- STATE PRO PŘIHLÁŠENÍ ---
+  const [signInEmail, setSignInEmail] = useState("")
+  const [signInPassword, setSignInPassword] = useState("")
+
+  // --- STATE PRO REGISTRACI ---
+  const [signUpName, setSignUpName] = useState("")
+  const [signUpEmail, setSignUpEmail] = useState("")
+  const [signUpPassword, setSignUpPassword] = useState("")
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("")
 
   // Funkce pro PŘIHLÁŠENÍ
   const handleSignIn = async () => {
     setIsLoading(true)
     await authClient.signIn.email({
-        email,
-        password,
+        email: signInEmail,
+        password: signInPassword,
     }, {
         onSuccess: () => {
              setIsLoading(false)
@@ -41,11 +45,17 @@ export default function AuthenticationPage() {
 
   // Funkce pro REGISTRACI
   const handleSignUp = async () => {
+    // 1. Validace shody hesel
+    if (signUpPassword !== signUpConfirmPassword) {
+        alert("Hesla se neshodují! Zadejte je prosím znovu.")
+        return
+    }
+
     setIsLoading(true)
     await authClient.signUp.email({
-        email,
-        password,
-        name,
+        email: signUpEmail,
+        password: signUpPassword,
+        name: signUpName,
     }, {
         onSuccess: () => {
              setIsLoading(false)
@@ -59,79 +69,97 @@ export default function AuthenticationPage() {
   }
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen bg-background transition-colors duration-300">
+    <div className="min-h-screen bg-background transition-colors duration-300 flex flex-col">
       
-      {/* Levá část - Auth Container */}
-      <div className="flex items-center justify-center py-12 px-4">
-        <div className="mx-auto w-full max-w-[400px] space-y-6">
+      {/* Volitelné: Malá hlavička, aby uživatel věděl, kde je, i když je to login screen */}
+      <div className="py-6 flex justify-center items-center gap-2">
+         <FaBreadSlice className="text-3xl text-primary" />
+         <span className="text-xl font-bold font-serif tracking-wider">PEKAŘSTVÍ BÁNOV</span>
+      </div>
+
+      <div className="flex-1 container mx-auto px-4 flex items-center justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-5xl my-8">
           
-          {/* Logo */}
-          <div className="flex flex-col items-center space-y-2 mb-8">
-             <FaBreadSlice className="text-4xl text-primary" />
-             <h1 className="text-2xl font-bold font-serif tracking-wider text-foreground">PEKAŘSTVÍ BÁNOV</h1>
-          </div>
+          {/* --- LEVÁ PŮLKA: PŘIHLÁŠENÍ --- */}
+          <div className="flex flex-col justify-center p-6 lg:p-10 rounded-2xl bg-card border border-border shadow-sm">
+            <div className="mx-auto w-full max-w-sm space-y-6">
+                <div className="flex flex-col space-y-2 text-center">
+                  <div className="mx-auto p-3 bg-primary/10 rounded-full mb-2">
+                    <FaSignInAlt className="h-6 w-6 text-primary" />
+                  </div>
+                  <h2 className="text-3xl font-bold tracking-tight">Přihlášení</h2>
+                  <p className="text-muted-foreground">
+                    Vítejte zpět! Zadejte své údaje.
+                  </p>
+                </div>
 
-          {/* TABS KOMPONENTA */}
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Přihlášení</TabsTrigger>
-              <TabsTrigger value="register">Registrace</TabsTrigger>
-            </TabsList>
-
-            {/* --- ZÁLOŽKA PŘIHLÁŠENÍ --- */}
-            <TabsContent value="login">
-              <Card className="border-none shadow-none bg-transparent">
-                <CardHeader className="px-0">
-                  <CardTitle>Vítejte zpět</CardTitle>
-                  <CardDescription>
-                    Zadejte své údaje pro přihlášení k účtu.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 px-0">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email-login">Email</Label>
                     <Input 
                         id="email-login" 
                         type="email" 
-                        placeholder="m@priklad.cz" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="vas@email.cz" 
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password-login">Heslo</Label>
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="password-login">Heslo</Label>
+                        <a href="#" className="text-xs text-primary hover:underline font-medium">Zapomenuté heslo?</a>
+                    </div>
                     <Input 
                         id="password-login" 
                         type="password" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        className="bg-background"
                     />
                   </div>
-                  <Button onClick={handleSignIn} disabled={isLoading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
-                    {isLoading ? "Pracuji..." : "Přihlásit se"}
+                  <Button onClick={handleSignIn} disabled={isLoading} className="w-full font-bold h-11">
+                    {isLoading ? "Ověřuji..." : "Přihlásit se"}
                   </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+            </div>
+          </div>
 
-            {/* --- ZÁLOŽKA REGISTRACE --- */}
-            <TabsContent value="register">
-              <Card className="border-none shadow-none bg-transparent">
-                <CardHeader className="px-0">
-                  <CardTitle>Vytvořit účet</CardTitle>
-                  <CardDescription>
-                    Zaregistrujte se a získejte přehled o objednávkách.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 px-0">
+          {/* Oddělovač pro mobil (na desktopu skrytý) */}
+          <div className="lg:hidden relative py-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Nebo
+              </span>
+            </div>
+          </div>
+
+          {/* --- PRAVÁ PŮLKA: REGISTRACE --- */}
+          <div className="flex flex-col justify-center p-6 lg:p-10 rounded-2xl bg-muted/30 border border-border border-dashed">
+            <div className="mx-auto w-full max-w-sm space-y-6">
+                <div className="flex flex-col space-y-2 text-center">
+                  <div className="mx-auto p-3 bg-muted rounded-full mb-2">
+                    <FaUserPlus className="h-6 w-6 text-foreground/70" />
+                  </div>
+                  <h2 className="text-3xl font-bold tracking-tight">Nová registrace</h2>
+                  <p className="text-muted-foreground">
+                    Ještě u nás nemáte účet? Zaregistrujte se.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name-register">Jméno a příjmení</Label>
+                    <Label htmlFor="name-register">Celé jméno</Label>
                     <Input 
                         id="name-register" 
                         type="text" 
                         placeholder="Jan Novák" 
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={signUpName}
+                        onChange={(e) => setSignUpName(e.target.value)}
+                        className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -139,49 +167,45 @@ export default function AuthenticationPage() {
                     <Input 
                         id="email-register" 
                         type="email" 
-                        placeholder="m@priklad.cz" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="novak@seznam.cz" 
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        className="bg-background"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password-register">Heslo</Label>
-                    <Input 
-                        id="password-register" 
-                        type="password" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
+                  
+                  <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="password-register">Heslo</Label>
+                        <Input 
+                            id="password-register" 
+                            type="password" 
+                            value={signUpPassword}
+                            onChange={(e) => setSignUpPassword(e.target.value)}
+                            className="bg-background"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Potvrzení hesla</Label>
+                        <Input 
+                            id="confirm-password" 
+                            type="password" 
+                            value={signUpConfirmPassword}
+                            onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                            className={`bg-background ${signUpConfirmPassword && signUpPassword !== signUpConfirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                        />
+                      </div>
                   </div>
-                  <Button onClick={handleSignUp} disabled={isLoading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
-                    {isLoading ? "Vytvářím..." : "Zaregistrovat se"}
+
+                  <Button onClick={handleSignUp} disabled={isLoading} variant="secondary" className="w-full font-bold h-11 border border-primary/20 hover:bg-primary/10 hover:text-primary">
+                    {isLoading ? "Vytvářím účet..." : "Zaregistrovat se"}
                   </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+            </div>
+          </div>
 
         </div>
       </div>
-
-      {/* Pravá část - Obrázek */}
-      <div className="hidden bg-muted lg:block relative">
-        <Image
-          src="/images/HeroSection.webp" 
-          alt="Obrázek pekárny"
-          fill
-          className="object-cover brightness-[0.4] dark:brightness-[0.3] dark:grayscale"
-        />
-        <div className="absolute inset-0 flex flex-col justify-end p-10 text-white z-10">
-            <blockquote className="space-y-2">
-                <p className="text-lg font-serif italic drop-shadow-lg">
-                &ldquo;Vůně čerstvého chleba je ta nejlepší pozvánka domů.&rdquo;
-                </p>
-                <footer className="text-sm font-bold text-primary">Pekařství Bánov</footer>
-            </blockquote>
-        </div>
-      </div>
-
     </div>
   )
 }

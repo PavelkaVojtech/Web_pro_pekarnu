@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
+import ToastProvider from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,13 +43,15 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-          <SiteHeader />
-          
-          <main className="flex-1">
-            {children}
-          </main>
+          <ToastProvider>
+            <SiteHeader />
+            
+            <main className="flex-1">
+              {children}
+            </main>
 
-          <SiteFooter />
+            <SiteFooter />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

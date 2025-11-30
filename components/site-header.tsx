@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Menu, ShoppingCart, User, LogOut } from "lucide-react"
 import { FaBreadSlice } from "react-icons/fa"
-import { authClient } from "@/lib/auth-client" // Importujeme našeho klienta
+import { authClient } from "@/lib/auth-client"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
@@ -19,18 +19,14 @@ export function SiteHeader() {
   ]
 
   const router = useRouter()
-  
-  // Magický hook, který zjistí, jestli jsi přihlášený
-  // session = data o uživateli (pokud je přihlášen), isPending = načítání
   const { data: session, isPending } = authClient.useSession()
 
-  // Funkce pro odhlášení
   const handleLogout = async () => {
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/") // Přesměrujeme na úvod
-          router.refresh() // Obnovíme stránku, aby zmizelo jméno
+          router.push("/")
+          router.refresh()
         },
       },
     })
@@ -64,20 +60,20 @@ export function SiteHeader() {
                   </Link>
                 ))}
                 
-                {/* Mobilní ovládací prvky */}
                 <div className="border-t border-border mt-4 pt-4 flex flex-col gap-4">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-sm font-medium">Vzhled aplikace</span>
                     <ModeToggle />
                   </div>
                   
-                  {/* Podmíněné zobrazení pro MOBIL */}
+                  {/* --- UŽIVATEL NA MOBILU --- */}
                   {session ? (
                     <div className="px-2 space-y-3">
-                        <div className="flex items-center gap-2 text-primary font-bold">
+                        {/* ZMĚNA: Jméno je nyní odkaz na profil */}
+                        <Link href="/profil" className="flex items-center gap-2 text-primary font-bold hover:underline">
                             <User className="h-5 w-5" />
                             <span>{session.user.name}</span>
-                        </div>
+                        </Link>
                         <Button 
                             variant="destructive" 
                             onClick={handleLogout}
@@ -133,24 +129,31 @@ export function SiteHeader() {
 
             <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary hover:bg-accent" aria-label="Košík">
               <ShoppingCart className="h-5 w-5" />
+              {/* Zde později přidáme číslo počtu položek v košíku */}
               <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
             </Button>
 
-            {/* Podmíněné zobrazení pro DESKTOP */}
+            {/* --- UŽIVATEL NA DESKTOPU --- */}
             {!isPending && (
                 session ? (
-                    <div className="hidden sm:flex items-center gap-4 pl-2">
-                        <span className="text-sm font-medium text-foreground truncate max-w-[150px]">
-                            {session.user.name}
-                        </span>
+                    <div className="hidden sm:flex items-center gap-2 pl-2">
+                        {/* ZMĚNA: Jméno je odkaz na profil */}
+                        <Button asChild variant="ghost" className="text-foreground hover:text-primary font-bold px-2">
+                            <Link href="/profil" className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                <span className="truncate max-w-[150px]">{session.user.name}</span>
+                            </Link>
+                        </Button>
+
                         <Button 
-                            variant="outline" 
-                            size="sm" 
+                            variant="ghost" 
+                            size="icon"
                             onClick={handleLogout}
-                            className="border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all"
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Odhlásit se"
                         >
                             <LogOut className="h-4 w-4" />
                         </Button>
