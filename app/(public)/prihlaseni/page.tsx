@@ -33,14 +33,25 @@ export default function AuthenticationPage() {
         email: signInEmail,
         password: signInPassword,
     }, {
-        onSuccess: () => {
+        onSuccess: (ctx) => {
              setIsLoading(false)
              toast.success("Vítejte zpět!", "Přihlášení proběhlo úspěšně.")
-             router.push("/")
+             
+             // --- NOVÁ LOGIKA PŘESMĚROVÁNÍ ---
+             // Díky našemu nastavení už TypeScript ví o 'role', 
+             // ale pro jistotu to můžeme přetypovat, kdyby editor zlobil.
+             const role = (ctx.data.user as any).role;
+
+             if (role === "ADMIN") {
+                 router.push("/admin") // Admin jde do administrace
+             } else {
+                 router.push("/")      // Zákazník jde na domovskou stránku
+             }
+             
+             router.refresh() // Obnovíme data, aby se načetla nová session v layoutu
         },
         onError: (ctx) => {
              setIsLoading(false)
-             // <--- 3. Nahrazení alertu toastem
              toast.error("Chyba přihlášení", ctx.error.message || "Zkontrolujte email a heslo.")
         }
     })

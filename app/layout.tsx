@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"; // 1. Import fontu
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
-import ToastProvider from "@/components/ui/toast";
+import { ToastProvider } from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,13 +42,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
           <ToastProvider>
-            <SiteHeader />
-            
-            <main className="flex-1">
-              {children}
-            </main>
-
-            <SiteFooter />
+            {children}
           </ToastProvider>
         </ThemeProvider>
       </body>
