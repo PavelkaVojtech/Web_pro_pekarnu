@@ -8,32 +8,29 @@ import { ArrowLeft } from "lucide-react"
 const prisma = new PrismaClient()
 
 interface CategoryPageProps {
-    // V Next.js 15 jsou params Promise, musíme je awaitovat
     params: Promise<{ categorySlug: string }>
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
+    // Tady získáváme SLUG kategorie (např. 'chleby'), ne ID produktu
     const { categorySlug } = await params
 
-    // 1. Najdeme kategorii podle slugu (např. 'chleb') a rovnou načteme její produkty
     const category = await prisma.category.findUnique({
         where: { slug: categorySlug },
         include: {
             products: {
-                where: { isAvailable: true }, // Zobrazíme jen ty aktivní
-                orderBy: { createdAt: 'desc' } // Nejnovější první
+                where: { isAvailable: true },
+                orderBy: { createdAt: 'desc' }
             }
         }
     })
 
-    // Pokud kategorie neexistuje (např. /produkty/blbost), hodíme 404
     if (!category) {
         notFound()
     }
 
     return (
         <div className="container mx-auto px-4 py-12 min-h-[60vh]">
-            {/* Hlavička s navigací */}
             <div className="flex flex-col md:flex-row md:items-center gap-6 mb-12">
                 <Button variant="ghost" className="w-fit pl-0 hover:bg-transparent hover:text-primary transition-colors" asChild>
                     <Link href="/produkty">
@@ -51,7 +48,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                 </div>
             </div>
 
-            {/* Seznam produktů */}
             {category.products.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 bg-muted/20 rounded-2xl border border-dashed border-border text-center">
                     <div className="text-6xl mb-4 opacity-20">🍞</div>
