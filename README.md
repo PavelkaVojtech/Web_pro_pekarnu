@@ -2,7 +2,7 @@
 
 **Autor:** Vojtěch Pavelka
 
-Projekt je maturitní prací zaměřenou na vývoj komplexní webové aplikace, která pokrývá potřeby moderní pekárny v oblasti online prezentace a e-commerce.
+Projekt je maturitní prací na OAUH zaměřenou na vývoj webové aplikace, která má za cíl umožnit zákazníkům objednávat pečivo online a zajistit prezentaci pekárny na internetu.
 
 ---
 
@@ -12,15 +12,15 @@ Hlavním cílem této práce je vytvořit **moderní a plně responzivní inform
 
 ### Klíčové Funkce Systému
 
-* **Prezentační Web:** Moderní firemní vizitka s intuitivním designem, včetně sekcí O nás a Kontakt.
-* **Katalog Produktů (Sortiment):** Ucelený přehled výrobků rozdělený do kategorií (chleby, jemné pečivo, běžné pečivo) s detailními informacemi o složení a alergenech.
+* **Prezentační Web:** Moderní firemní vizitka s intuitivním designem.
+* **Katalog Produktů (Sortiment):** Přehled výrobků rozdělený do kategorií, s detailními informacemi o složení a alergenech.
 * **Objednávkový Systém:** Podpora **jednorázových i pravidelných** objednávek s možností doručení nebo osobního vyzvednutí.
 * **Uživatelská Zóna:** Správa zákaznického profilu, historie objednávek a automatické e-mailové notifikace.
-* **Podpora pro Zaměstnance:** Sekce pro přihlášení zaměstnanců a přístup k interním nástrojům (např. přehled odpracovaných hodin).
+* **Podpora pro Zaměstnance:** Přístup zaměstnanců do interní firemní aplikace.
 
-## 💻 Technologický Stack (The MERN Stack++)
+## 💻 Technologický Stack
 
-Projekt je implementován s využitím následujících nejmodernějších webových technologií, které zajišťují rychlost, spolehlivost a škálovatelnost:
+Projekt využívá nejmodernějších webových technologií, které zajišťují rychlost, spolehlivost a možnost budoucího rozšíření.
 
 | Oblast | Technologie | Účel |
 | :--- | :--- | :--- |
@@ -35,28 +35,4 @@ Projekt je implementován s využitím následujících nejmodernějších webov
 
 ---
 
-## 🛠️ Instalace a Spuštění
-
-Tento projekt byl inicializován pomocí `create-next-app`.
-
-### 1. Klonování Repozitáře
-
-```bash
-git clone [URL_VAŠEHO_REPOZITÁŘE]
-cd web_pro_pekarnu
-```
-
-### 2. Instalace Závislostí
-Použijte preferovaný správce balíčků (npm, yarn, pnpm, bun)
-
-```bash
-npm install
-```
-
-### 3. Spuštění Vývojového Serveru
-```bash
-npm run dev
-```
-
-Otevřete http://localhost:3000 ve vašem prohlížeči. Aplikace se automaticky aktualizuje při změnách kódu.
 
